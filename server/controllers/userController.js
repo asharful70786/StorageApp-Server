@@ -15,8 +15,9 @@ export const register = async (req, res, next) => {
   }
 
   const { name, email, password, otp } = data;
-
+  console.log(otp);
   const otpRecord = await OTP.findOne({ email, otp });
+
   if (!otpRecord) {
     return res.status(400).json({ error: "Invalid or Expired OTP!" });
   }
@@ -24,114 +25,127 @@ export const register = async (req, res, next) => {
   await otpRecord.deleteOne();
 
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     const rootDirId = new Types.ObjectId();
     const userId = new Types.ObjectId();
 
-    // 1️⃣ Create root directory
-    await Directory.create(
-      [
-        {
-          _id: rootDirId,
-          name: `root-${email}`,
-          parentDirId: null,
-          userId,
-          size: 0,
-        },
-      ],
+    session.startTransaction();
+
+    await Directory.insertOne(
+      {
+        _id: rootDirId,
+        name: `root-${email}`,
+        parentDirId: null,
+        userId,
+      },
       { session }
     );
 
-    // 2️⃣ Create user
-    await User.create(
-      [
-        {
-          _id: userId,
-          name,
-          email,
-          password,
-          rootDirId,
-        },
-      ],
+    await User.insertOne(
+      {
+        _id: userId,
+        name,
+        email,
+        password,
+        rootDirId,
+      },
       { session }
     );
 
-    // 3️⃣ Commit the transaction properly
-    await session.commitTransaction();
-    session.endSession();
+    session.commitTransaction();
 
     res.status(201).json({ message: "User Registered" });
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
-    if (err.code === 11000 && err.keyValue?.email) {
-      return res.status(409).json({
-        error: "This email already exists",
-        message:
-          "A user with this email address already exists. Please try logging in or use a different email.",
-      });
+    session.abortTransaction();
+    console.log(err);
+    if (err.code === 121) {
+      res
+        .status(400)
+        .json({ error: "Invalid input, please enter valid details" });
+    } else if (err.code === 11000) {
+      if (err.keyValue.email) {
+        return res.status(409).json({
+          error: "This email already exists",
+          message:
+            "A user with this email address already exists. Please try logging in or use a different email.",
+        });
+      }
+    } else {
+      next(err);
     }
-
-    console.error("Registration error:", err);
-    next(err);
   }
 };
-
 
 export const login = async (req, res, next) => {
-  const { success, data } = loginSchema.safeParse(req.body);
-
-  if (!success) {
-    return res.status(400).json({ error: "Invalid Credentials" });
-  }
-
-  const { email, password } = data;
-  const user = await User.findOne({ email });
-
-  if (!user) {
-    return res.status(404).json({ error: "Invalid Credentials" });
-  }
-
-  const isPasswordValid = await user.comparePassword(password);
-
-  if (!isPasswordValid) {
-    return res.status(404).json({ error: "Invalid Credentials" });
-  }
-
-  const allSessions = await redisClient.ft.search(
-    "userIdIdx",
-    `@userId:{${user.id}}`,
-    {
-      RETURN: [],
+  try {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid Credentials" });
     }
-  );
 
-  if (allSessions.total >= 2) {
-    await redisClient.del(allSessions.documents[0].id);
+    const { email, password } = parsed.data;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "Invalid Credentials" });
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(404).json({ error: "Invalid Credentials" });
+    }
+
+    const userId = String(user._id);
+
+    const sessionExpirySeconds = 60 * 60 * 24 * 7;
+    const sessionExpiryMs = sessionExpirySeconds * 1000;
+
+    const sessionId = crypto.randomUUID();
+    const sessionKey = `session:${sessionId}`;
+    const userSessionsKey = `user:sessions:${userId}`;
+
+    // ✅ FIX: if old data exists with wrong type, delete it
+    const t = await redisClient.type(userSessionsKey);
+    if (t !== "none" && t !== "set") {
+      await redisClient.del(userSessionsKey);
+    }
+
+    // Store session
+    await redisClient.set(
+      sessionKey,
+      JSON.stringify({
+        userId,
+        rootDirId: user.rootDirId,
+      }),
+      { EX: sessionExpirySeconds }
+    );
+
+    // Track sessions
+    await redisClient.sAdd(userSessionsKey, sessionKey);
+
+    // Keep set expiring too
+    await redisClient.expire(userSessionsKey, sessionExpirySeconds);
+
+    // Enforce max 2 sessions
+    const count = await redisClient.sCard(userSessionsKey);
+    if (count > 2) {
+      const oldSessionKey = await redisClient.sPop(userSessionsKey);
+      if (oldSessionKey) await redisClient.del(oldSessionKey);
+    }
+
+    res.cookie("sid", sessionId, {
+      httpOnly: true,
+      signed: true,
+      sameSite: "none",
+      secure: true,
+      maxAge: sessionExpiryMs,
+    });
+
+    return res.json({ message: "logged in" });
+  } catch (err) {
+    return next(err);
   }
-
-  const sessionId = crypto.randomUUID();
-  const redisKey = `session:${sessionId}`;
-  await redisClient.json.set(redisKey, "$", {
-    userId: user._id,
-    rootDirId: user.rootDirId,
-  });
-
-  const sessionExpiryTime = 60 * 1000 * 60 * 24 * 7;
-  await redisClient.expire(redisKey, sessionExpiryTime / 1000);
-
-  res.cookie("sid", sessionId, {
-    httpOnly: true,
-    signed: true,
-    sameSite: "none",
-    secure: true,
-    maxAge: sessionExpiryTime,
-  });
-  res.json({ message: "logged in" });
 };
+
 
 export const getAllUsers = async (req, res) => {
   const allUsers = await User.find({ deleted: false }).lean();

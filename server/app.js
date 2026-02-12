@@ -98,6 +98,9 @@ app.get("/err", (req, res) => {
   process.exit(1);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server Started ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server Started ${PORT}`);
+// });
+
+
+export default app;
