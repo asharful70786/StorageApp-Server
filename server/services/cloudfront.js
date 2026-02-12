@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY;
 const keyPairId = "K176HUBFCYBM2V";
 const dateLessThan = new Date(Date.now() + 1000 * 60 * 60).toISOString(); // any Date constructor compatible
-const distributionName = `https://d6bp7k8ckoxwn.cloudfront.net`;
+const distributionName = `https://d1ie6sass83b7z.cloudfront.net`;
 
 export const createCloudFrontGetSignedUrl = ({
   key,
@@ -19,5 +19,7 @@ export const createCloudFrontGetSignedUrl = ({
   });
   return signedUrl;
 };
+
+
 
 

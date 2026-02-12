@@ -12,7 +12,8 @@ import checkAuth from "./middlewares/authMiddleware.js";
 
 import crypto from "crypto";
 import { exec } from "child_process";
-import { initRedis } from "./config/redis.js";
+
+dotenv.config();
 
 const app = express();
 
@@ -57,15 +58,7 @@ app.use(
   })
 );
 
-(async () => {
-  try {
-    await initRedis(); // ensures index exists
-    app.listen(4000, () => console.log("Server started 4000"));
-  } catch (err) {
-    console.error("Startup failed:", err);
-    process.exit(1);
-  }
-})();
+
 
 
 
@@ -94,13 +87,13 @@ app.use((err, req, res, next) => {
 });
 
 app.get("/err", (req, res) => {
-  console.log("error occered");
+  console.log("error happened");
   process.exit(1);
 });
 
-// app.listen(PORT, () => {
-//   console.log(`Server Started ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server Started ${PORT}`);
+});
 
 
-export default app;
+// export default app;

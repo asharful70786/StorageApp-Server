@@ -16,7 +16,7 @@
     "@aws-sdk/cloudfront-signer": "^3.916.0",
     "@aws-sdk/s3-presigned-post": "^3.914.0",
     "@aws-sdk/s3-request-presigner": "^3.916.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "child_process": "^1.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

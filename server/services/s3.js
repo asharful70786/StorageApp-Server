@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -12,27 +9,24 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
-  region: "us-east-1",
+  region: 'ap-south-1',
   credentials: {
-    accessKeyId:  process.env.aws_access_key_id,
+    accessKeyId: process.env.aws_access_key_id,
     secretAccessKey: process.env.aws_secret_access_key,
   },
 });
 
-
-
 export const createUploadSignedUrl = async ({ key, contentType }) => {
   const command = new PutObjectCommand({
-    Bucket: "private-storageapp",
+    Bucket: "zenpixstorageapp",
     Key: key,
     ContentType: contentType,
   });
 
   const url = await getSignedUrl(s3Client, command, {
     expiresIn: 300,
-    // signableHeaders: new Set(["content-type"]),
+    signableHeaders: new Set(["content-type"]),
   });
-  console.log(url)
 
   return url;
 };
@@ -43,7 +37,7 @@ export const createGetSignedUrl = async ({
   filename,
 }) => {
   const command = new GetObjectCommand({
-    Bucket: "private-storageapp",
+    Bucket: "zenpixstorageapp",
     Key: key,
     ResponseContentDisposition: `${download ? "attachment" : "inline"}; filename=${encodeURIComponent(filename)}`,
   });
@@ -57,7 +51,7 @@ export const createGetSignedUrl = async ({
 
 export const getS3FileMetaData = async (key) => {
   const command = new HeadObjectCommand({
-    Bucket: "private-storageapp",
+    Bucket: "zenpixstorageapp",
     Key: key,
   });
 
@@ -66,7 +60,7 @@ export const getS3FileMetaData = async (key) => {
 
 export const deleteS3File = async (key) => {
   const command = new DeleteObjectCommand({
-    Bucket: "private-storageapp",
+    Bucket: "zenpixstorageapp",
     Key: key,
   });
 
@@ -75,7 +69,7 @@ export const deleteS3File = async (key) => {
 
 export const deleteS3Files = async (keys) => {
   const command = new DeleteObjectsCommand({
-    Bucket: "private-storageapp",
+    Bucket: "zenpixstorageapp",
     Delete: {
       Objects: keys,
       Quiet: false, // set true to skip individual delete responses
