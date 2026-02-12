@@ -1,6 +1,8 @@
 name: Deploy StorageApp Backend
 
-on: [push, workflow_dispatch]
+on: [ workflow_dispatch]
+#   #  [push, workflow_dispatch]
+# we have stop Ci/cd -> as we recently Moved to Lambda function .  
 
 jobs:
   deploy:
