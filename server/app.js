@@ -12,6 +12,7 @@ import checkAuth from "./middlewares/authMiddleware.js";
 import { connectDB } from "./config/db.js";
 import crypto from "crypto";
 import { exec } from "child_process";
+import { initRedis } from "./config/redis.js";
 
 const app = express();
 await connectDB();
@@ -54,6 +55,18 @@ app.use(
     credentials: true,
   })
 );
+
+(async () => {
+  try {
+    await initRedis(); // ensures index exists
+    app.listen(4000, () => console.log("Server started 4000"));
+  } catch (err) {
+    console.error("Startup failed:", err);
+    process.exit(1);
+  }
+})();
+
+
 
 app.use(express.json());
 app.use(cookieParser(process.env.SESSION_SECRET));
