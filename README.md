@@ -139,23 +139,6 @@ The system is optimized for **low-to-moderate traffic with burst capability**, a
 
 ---
 
-## Setup (Local Development)
-
-```bash
-git clone https://github.com/asharful70786/StorageApp.git
-cd StorageApp/server
-npm install
-cp .env.example .env
-npm start
-
-cd ../client
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173` to access the client.
-
----
 
 ## Author
 
