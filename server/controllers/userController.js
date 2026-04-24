@@ -3,7 +3,7 @@ import User from "../models/userModel.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
 import OTP from "../models/otpModel.js";
-import redisClient from "../config/redis.js";
+import { redisClient } from "../config/redis.js";
 import { z } from "zod/v4";
 import { loginSchema, registerSchema } from "../validators/authSchema.js";
 

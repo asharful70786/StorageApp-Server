@@ -91,8 +91,15 @@ export const deleteFile = async (req, res, next) => {
   }
 };
 
+/**
+ * Creates a file record and returns a signed upload URL for S3.
+ *
+ * @param {import("express").Request} req - Express request.
+ * @param {import("express").Response} res - Express response.
+ * @returns {Promise<import("express").Response>}
+ */
 export const uploadInitiate = async (req, res) => {
-   console.log(`req of body from file upload init ${JSON.stringify(req.body)}`);
+  console.log(`req of body from file upload init ${JSON.stringify(req.body)}`);
   const parentDirId = req.body.parentDirId || req.user.rootDirId;
   try {
     const parentDirData = await Directory.findOne({
@@ -104,8 +111,15 @@ export const uploadInitiate = async (req, res) => {
       return res.status(404).json({ error: "Parent directory not found!" });
     }
 
-    const filename = req.body.filename || "untitled";
-    const filesize = req.body.filesize || 0;
+    const filename = req.body.filename || req.body.name;
+    const filesize = req.body.filesize ?? req.body.size ?? 0;
+    const extension = path.extname(filename || "");
+
+    if (!filename || !extension) {
+      return res.status(400).json({
+        error: "Please upload a file with a valid extension.",
+      });
+    }
 
     const user = await User.findById(req.user._id);
     const rootDir = await Directory.findById(req.user.rootDirId);
@@ -117,7 +131,6 @@ export const uploadInitiate = async (req, res) => {
       return res.status(507).json({ error: "Not enough storage." });
     }
 
-    const extension = path.extname(filename);
     const insertedFile = await File.insertOne({
       extension,
       name: filename,

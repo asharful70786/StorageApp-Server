@@ -1,4 +1,4 @@
-import redisClient from "../config/redis.js";
+import { redisClient } from "../config/redis.js";
 
 export default async function checkAuth(req, res, next) {
   try {
@@ -37,11 +37,11 @@ export default async function checkAuth(req, res, next) {
 }
 
 export const checkNotRegularUser = (req, res, next) => {
-  if (req.user?.role !== "User") return next();
-  return res.status(403).json({ error: "You can not access users" });
+  if (req.user?.role == "User") return next();
+  return res.status(403).json({ error: "You can not access users url , you are not admin" });
 };
 
 export const checkIsAdminUser = (req, res, next) => {
   if (req.user?.role === "Admin") return next();
-  return res.status(403).json({ error: "You can not delete users" });
+  return res.status(403).json({ error: "You can not access admins url " });
 };

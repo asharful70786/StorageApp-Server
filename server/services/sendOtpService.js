@@ -14,18 +14,33 @@ export async function sendOtpService(email) {
   );
 
   const html = `
-    <div style="font-family:sans-serif;">
-      <h2>Your OTP is: ${otp}</h2>
-      <p>This OTP is valid for 10 minutes.</p>
-    </div>
-  `;
+  <div style="font-family:Arial, sans-serif; max-width:600px; margin:auto;">
+    <h2>Verify your email</h2>
+    <p>Use the OTP below to complete your sign-in to <strong>Storage App</strong>.</p>
 
-  await resend.emails.send({
-    from: "Storage App <otp@ashraful.in>",
-    to: email,
-    subject: "Storage App OTP",
-    html,
-  });
+    <div style="font-size:24px; font-weight:bold; margin:20px 0;">
+      ${otp}
+    </div>
+
+    <p>This code expires in 10 minutes.</p>
+
+    <hr />
+    <p style="font-size:12px; color:#666;">
+      You received this email because you attempted to sign in to Storage App.
+      If this wasn’t you, you can safely ignore this email.
+    </p>
+  </div>
+`;
+
+
+ await resend.emails.send({
+  from: "Storage App <otp@zenpix.shop>",
+  to: email,
+  subject: "Your Storage App verification code",
+  html,
+  text: `Your Storage App verification code is ${otp}. It expires in 10 minutes.`,
+});
+
 
   return { success: true, message: `OTP sent successfully on ${email}` };
 }

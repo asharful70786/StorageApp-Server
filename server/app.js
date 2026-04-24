@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -9,47 +9,20 @@ import userRoutes from "./routes/userRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import checkAuth from "./middlewares/authMiddleware.js";
+import { connectDB } from "./config/db.js";
+import { connectRedis } from "./config/redis.js";
 
-import crypto from "crypto";
-import { exec } from "child_process";
 
-dotenv.config();
+
+await connectDB();
+await connectRedis();
 
 const app = express();
 
 const PORT = process.env.PORT || 4000;
 
 
-//we fully moved to Github action and no lambda so its ;-> webHook useLess
-// app.post("/github-webhook",  express.raw({ type: "application/json" }),  (req, res) => {
-//     // const signature = req.headers["x-hub-signature-256"];
-//     // if (!signature) {
-//     //   console.error("Missing signature");
-//     //   return res.status(401).send("Unauthorized");
-//     // }
 
-//     // const hmac = crypto
-//     //   .createHmac("sha256", process.env.git_webHook_sec)
-//     //   .update(req.body) 
-//     //   .digest("hex");
-
-//     // const expectedSignature = `sha256=${hmac}`;
-
-//     // if (signature !== expectedSignature) {
-//     //   console.error("Signature mismatch");
-//     //   return res.status(401).send("Unauthorized");
-//     // }
-
-//     res.status(200).send("OK");
-
-//     console.log("Webhook verified — starting deploy...");
-
-//     exec("bash /home/ubuntu/server-deployment.sh", (err, stdout, stderr) => {
-//       if (err) return console.error("Backend deploy error:", stderr);
-//       console.log("Backend deployed:", stdout);
-//     });
-//   }
-// );
 
 app.use(
   cors({
@@ -91,8 +64,19 @@ app.get("/err", (req, res) => {
   process.exit(1);
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server Started ${PORT}`);
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `Port ${PORT} is already in use. Stop the running server or change PORT in .env.`
+    );
+    process.exit(1);
+  }
+
+  throw err;
 });
 
 
