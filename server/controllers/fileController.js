@@ -1,4 +1,5 @@
 import path from "path";
+import { Types } from "mongoose";
 import Directory from "../models/directoryModel.js";
 import File from "../models/fileModel.js";
 import User from "../models/userModel.js";
@@ -16,6 +17,25 @@ export async function updateDirectoriesSize(parentId, deltaSize) {
     await dir.save();
     parentId = dir.parentDirId;
   }
+}
+
+async function getPendingUploadSize(userId) {
+  const [pendingUpload] = await File.aggregate([
+    {
+      $match: {
+        userId: new Types.ObjectId(userId),
+        isUploading: true,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalSize: { $sum: "$size" },
+      },
+    },
+  ]);
+
+  return pendingUpload?.totalSize || 0;
 }
 
 export const getFile = async (req, res) => {
@@ -99,7 +119,7 @@ export const deleteFile = async (req, res, next) => {
  * @returns {Promise<import("express").Response>}
  */
 export const uploadInitiate = async (req, res) => {
-  console.log(`req of body from file upload init ${JSON.stringify(req.body)}`);
+  // console.log(`req of body from file upload init ${JSON.stringify(req.body)}`);
   const parentDirId = req.body.parentDirId || req.user.rootDirId;
   try {
     const parentDirData = await Directory.findOne({
@@ -112,10 +132,15 @@ export const uploadInitiate = async (req, res) => {
     }
 
     const filename = req.body.filename || req.body.name;
-    const filesize = req.body.filesize ?? req.body.size ?? 0;
+    const filesize = Number(req.body.filesize ?? req.body.size ?? 0);
     const extension = path.extname(filename || "");
 
-    if (!filename || !extension) {
+    if (
+      !filename ||
+      !extension ||
+      !Number.isFinite(filesize) ||
+      filesize <= 0
+    ) {
       return res.status(400).json({
         error: "Please upload a file with a valid extension.",
       });
@@ -123,8 +148,10 @@ export const uploadInitiate = async (req, res) => {
 
     const user = await User.findById(req.user._id);
     const rootDir = await Directory.findById(req.user.rootDirId);
+    const pendingUploadSize = await getPendingUploadSize(req.user._id);
 
-    const remainingSpace = user.maxStorageInBytes - rootDir.size;
+    const remainingSpace =
+      user.maxStorageInBytes - rootDir.size - pendingUploadSize;
 
     if (filesize > remainingSpace) {
       console.log("File too large");
@@ -150,8 +177,19 @@ export const uploadInitiate = async (req, res) => {
   }
 };
 
+/**
+ * Verifies a direct S3 upload and marks the file as available.
+ *
+ * @param {import("express").Request} req - Express request.
+ * @param {import("express").Response} res - Express response.
+ * @param {import("express").NextFunction} next - Express next callback.
+ * @returns {Promise<import("express").Response|void>}
+ */
 export const uploadComplete = async (req, res, next) => {
-  const file = await File.findById(req.body.fileId);
+  const file = await File.findOne({
+    _id: req.body.fileId,
+    userId: req.user._id,
+  });
   if (!file) {
     return res.status(404).json({ error: "File not found in our records" });
   }
@@ -172,4 +210,33 @@ export const uploadComplete = async (req, res, next) => {
       .status(404)
       .json({ error: "File was could not be uploaded properly." });
   }
+};
+
+/**
+ * Cancels a pending upload and removes its file record.
+ *
+ * @param {import("express").Request} req - Express request.
+ * @param {import("express").Response} res - Express response.
+ * @returns {Promise<import("express").Response>}
+ */
+export const uploadCancel = async (req, res) => {
+  const file = await File.findOne({
+    _id: req.params.id,
+    userId: req.user._id,
+    isUploading: true,
+  });
+
+  if (!file) {
+    return res.status(404).json({ error: "Pending upload not found." });
+  }
+
+  await file.deleteOne();
+
+  try {
+    await deleteS3File(`${file.id}${file.extension}`);
+  } catch {
+    // The object may not exist yet when a user cancels before the PUT starts.
+  }
+
+  return res.json({ message: "Upload cancelled" });
 };
