@@ -8,6 +8,8 @@ import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import shareRoutes from "./routes/shareRoutes.js";
+import publicShareRoutes from "./routes/publicShareRoutes.js";
 import checkAuth from "./middlewares/authMiddleware.js";
 import { connectDB } from "./config/db.js";
 import { connectRedis } from "./config/redis.js";
@@ -51,6 +53,8 @@ app.use("/directory", checkAuth, directoryRoutes);
 app.use("/file", checkAuth, fileRoutes);
 app.use("/subscriptions", checkAuth, subscriptionRoutes);
 app.use("/webhooks", webhookRoutes);
+app.use("/shares", checkAuth, shareRoutes);
+app.use("/public-shares", publicShareRoutes);
 app.use("/", userRoutes);
 app.use("/auth", authRoutes);
 
