@@ -85,11 +85,12 @@ export const login = async (req, res, next) => {
     }
 
     const { email, password } = parsed.data;
+    // console.log("password received:", JSON.stringify(password), typeof password);
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "Invalid Credentials" });
 
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = password ? await user.comparePassword(password) : false;
     if (!isPasswordValid) {
       return res.status(404).json({ error: "Invalid Credentials" });
     }

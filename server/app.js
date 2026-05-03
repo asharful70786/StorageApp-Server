@@ -84,4 +84,48 @@ server.on("error", (err) => {
 });
 
 
-// export default app;
+app.get("/prod_status", (req, res) => {
+  const demoResponses = [
+    {
+      service: "storage-api",
+      status: "healthy",
+      severity: "info",
+      message: "All storage services are operating normally.",
+      suggestion: "No action is required at this time."
+    },
+    {
+      service: "storage-api",
+      status: "healthy",
+      severity: "info",
+      message: "Storage server is stable and responding within normal range.",
+      suggestion: "System performance looks good."
+    },
+    {
+      service: "storage-api",
+      status: "warning",
+      severity: "medium",
+      message: "Storage pools are active, but response time is slightly elevated.",
+      suggestion: "Please review Grafana metrics if the delay continues."
+    },
+    {
+      service: "storage-api",
+      status: "warning",
+      severity: "medium",
+      message: "Background refresh jobs are running and some recent data may still be updating.",
+      suggestion: "Wait a few moments before checking the latest sync-dependent operations."
+    }
+  ];
+
+  const randomIndex = Math.floor(Math.random() * demoResponses.length);
+  const selected = demoResponses[randomIndex];
+
+  res.status(200).json({
+    ...selected,
+    uptime: Math.floor(process.uptime()),
+    lastHeartbeat: new Date().toISOString()
+  });
+});
+
+
+
+export default app;
