@@ -39,33 +39,43 @@ async function getPendingUploadSize(userId) {
 }
 
 export const getFile = async (req, res) => {
-  const { id } = req.params;
-  const fileData = await File.findOne({
-    _id: id,
-    userId: req.user._id,
-  }).lean();
+  try {
+    const { id } = req.params;
 
-  if (!fileData) {
-    return res.status(404).json({ error: "File not found!" });
-  }
+    // console.log("GET FILE HIT:", id);
+    // console.log("USER:", req.user?._id);
 
-  if (req.query.action === "download") {
+    const fileData = await File.findOne({
+      _id: id,
+      userId: req.user._id,
+    }).lean();
+
+    if (!fileData) {
+      return res.status(404).json({ error: "File not found!" });
+    }
+
+    const key = `${id}${fileData.extension}`;
+    // console.log("KEY:", key);
+
     const fileUrl = createCloudFrontGetSignedUrl({
-      key: `${id}${fileData.extension}`,
-      download: true,
+      key,
+      download: req.query.action === "download",
       filename: fileData.name,
     });
+
+    // console.log("SIGNED URL GENERATED");
+
     return res.redirect(fileUrl);
+
+  } catch (error) {
+    console.error("GET FILE ERROR:", error);
+
+    return res.status(500).json({
+      error: "Internal server error",
+      message: error.message,
+    });
   }
-
-  // Send file
-  const fileUrl = createCloudFrontGetSignedUrl({
-    key: `${id}${fileData.extension}`,
-    filename: fileData.name,
-  });
-
-  return res.redirect(fileUrl);
-};
+};;
 
 export const renameFile = async (req, res, next) => {
   const { id } = req.params;
