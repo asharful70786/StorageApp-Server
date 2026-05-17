@@ -147,3 +147,16 @@ Backend-first Full-Stack Engineer
 Designing cost-efficient, production-ready cloud systems
 
 [https://www.ashraful.in/](https://www.ashraful.in/)
+# CI/CD (Lambda)
+
+This repo deploys the backend as an AWS Lambda (zip upload). Manual zip upload is replaced with a GitHub Actions workflow:
+
+- Workflow: `.github/workflows/lambda-deploy.yml`
+- Trigger: push to `main` (only when `server/**` changes) or manual `workflow_dispatch`
+
+GitHub Secrets required:
+
+- `AWS_REGION`
+- `LAMBDA_FUNCTION_NAME`
+- **Recommended (OIDC):** `AWS_ROLE_ARN`
+- **Alternative (static keys):** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`

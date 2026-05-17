@@ -11,12 +11,12 @@ import authRoutes from "./routes/authRoutes.js";
 import shareRoutes from "./routes/shareRoutes.js";
 import publicShareRoutes from "./routes/publicShareRoutes.js";
 import checkAuth from "./middlewares/authMiddleware.js";
-import { connectDB } from "./config/db.js";
+// import { connectDB } from "./config/db.js";
 import { connectRedis } from "./config/redis.js";
 
 
 
-await connectDB();
+// await connectDB();
 await connectRedis();
 
 const app = express();
@@ -68,20 +68,18 @@ app.get("/err", (req, res) => {
   process.exit(1);
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server Started ${PORT}`);
-});
 
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(
-      `Port ${PORT} is already in use. Stop the running server or change PORT in .env.`
-    );
-    process.exit(1);
-  }
 
-  throw err;
-});
+// server.on("error", (err) => {
+//   if (err.code === "EADDRINUSE") {
+//     console.error(
+//       `Port ${PORT} is already in use. Stop the running server or change PORT in .env.`
+//     );
+//     process.exit(1);
+//   }
+
+//   throw err;
+// });
 
 
 app.get("/prod_status", (req, res) => {
@@ -125,6 +123,12 @@ app.get("/prod_status", (req, res) => {
     lastHeartbeat: new Date().toISOString()
   });
 });
+
+
+
+// const server = app.listen(PORT, () => {
+//   console.log(`Server Started ${PORT}`);
+// });
 
 
 
