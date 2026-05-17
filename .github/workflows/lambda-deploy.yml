@@ -46,19 +46,10 @@ jobs:
             -x "**/.git/**" \
             -x "**/.github/**"
 
-      - name: Configure AWS credentials (OIDC role)
-        if: ${{ secrets.AWS_ROLE_ARN != '' }}
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Configure AWS credentials (access keys)
-        if: ${{ secrets.AWS_ROLE_ARN == '' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to Lambda
@@ -67,4 +58,3 @@ jobs:
             --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
             --zip-file "fileb://lambda.zip"
           aws lambda wait function-updated --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}"
-
